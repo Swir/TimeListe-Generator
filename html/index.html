@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07080d">
+    <title>WojThom 4.0 - NEON APEX</title>
+    
+    <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;WojThom 4.0 Time List&quot;,&quot;short_name&quot;:&quot;WojThom4&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#07080d&quot;,&quot;theme_color&quot;:&quot;#00f0ff&quot;}">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+        /* ================== CIEMNY MOTYW (DOMYŚLNY NEON) ================== */
+        :root {
+            --bg-dark: #07080d;
+            --bg-panel: rgba(15, 18, 25, 0.85);
+            --primary: #00f0ff;
+            --secondary: #ff0055;
+            --accent: #b829ea;
+            --text-main: #e0e6ed;
+            --text-muted: #6b7d99;
+            --success: #00ff66;
+            --warning: #ffcc00;
+            --font-header: 'Chakra Petch', sans-serif;
+            --font-body: 'Rajdhani', sans-serif;
+            --shadow-primary: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; flex-direction: column;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- TOOLBAR --- */
+        .toolbar {
+            background: linear-gradient(180deg, #131722, #07080d);
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.2);
+            padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 1000; transition: 0.3s;
+        }
+        .toolbar-brand { font-family: var(--font-header); font-weight: 700; font-size: 1.4rem; color: var(--primary); text-shadow: 0 0 8px var(--primary); letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .menu-items { display: flex; gap: 8px; }
+        .dropdown-container { position: relative; }
+        .toolbar-btn { background: transparent; border: 1px solid transparent; color: var(--text-main); font-family: var(--font-header); font-size: 1rem; padding: 8px 12px; cursor: pointer; border-radius: 6px; transition: 0.2s; font-weight: 600; text-transform: uppercase; }
+        .toolbar-btn:hover { border-color: var(--primary); color: var(--primary); text-shadow: 0 0 5px var(--primary); background: rgba(0, 240, 255, 0.05); }
+
+        .dropdown-menu { display: none; position: absolute; left: 0; top: 110%; background: #0f1219; border: 1px solid var(--primary); border-radius: 8px; min-width: 220px; box-shadow: var(--shadow-primary); z-index: 1001; overflow: hidden; transition: 0.3s; }
+        .dropdown-menu.right { left: auto; right: 0; }
+        .dropdown-menu.show { display: block; animation: dropDownIn 0.2s ease-out; }
+        @keyframes dropDownIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .dropdown-menu button { width: 100%; text-align: left; padding: 12px 15px; border: none; background: transparent; color: var(--text-main); font-family: var(--font-body); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: 0.2s; border-bottom: 1px solid rgba(0,240,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .dropdown-menu button:hover { background: var(--primary); color: #000; }
+        .separator { height: 1px; background-color: rgba(0,240,255,0.2); margin: 0; }
+
+        /* --- PANELE --- */
+        .main-container { flex: 1; padding: 15px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(10px); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,240,255,0.02); position: relative; transition: 0.3s; }
+        .glass-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 50px; height: 3px; background: var(--primary); box-shadow: 0 0 10px var(--primary); border-radius: 12px 0 0 0; }
+        
+        h3 { font-family: var(--font-header); color: var(--primary); margin-top: 0; font-size: 1.3rem; letter-spacing: 1px; text-transform: uppercase; }
+        label { display: block; font-family: var(--font-header); color: var(--text-muted); margin-bottom: 8px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- INPUTY --- */
+        input[type="text"], input[type="number"], select, textarea { width: 100%; background: rgba(0,0,0,0.6); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 6px; padding: 12px; color: var(--primary); font-family: var(--font-body); font-size: 1.1rem; font-weight: 600; outline: none; transition: 0.3s; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,240,255,0.2), inset 0 2px 5px rgba(0,0,0,0.8); }
+        textarea { height: 120px; resize: none; }
+
+        /* --- EXTREME 3D BUTTONS --- */
+        .btn-container { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+        .btn-3d {
+            background: linear-gradient(180deg, #1f2333 0%, #10121a 100%);
+            border: 2px solid var(--primary); border-radius: 8px;
+            color: var(--primary); font-family: var(--font-header); font-weight: 700; font-size: 1rem;
+            text-transform: uppercase; letter-spacing: 1px;
+            padding: 12px 20px; cursor: pointer;
+            box-shadow: 0 6px 0 #007a80, 0 8px 15px rgba(0,0,0,0.6);
+            transition: all 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: 1; min-width: 140px;
+        }
+        .btn-3d:hover { filter: brightness(1.2); text-shadow: 0 0 5px var(--primary); }
+        .btn-3d:active { transform: translateY(6px); box-shadow: 0 0 0 #007a80, 0 2px 5px rgba(0,0,0,0.6); }
+        
+        .btn-3d.secondary { border-color: var(--secondary); color: var(--secondary); box-shadow: 0 6px 0 #80002a, 0 8px 15px rgba(0,0,0,0.6); }
+        .btn-3d.secondary:active { box-shadow: 0 0 0 #80002a, 0 2px 5px rgba(0,0,0,0.6); }
+        
+        .btn-3d.warning { border-color: var(--warning); color: var(--warning); box-shadow: 0 6px 0 #806600, 0 8px 15px rgba(0,0,0,0.6); }
+        .btn-3d.warning:active { box-shadow: 0 0 0 #806600, 0 2px 5px rgba(0,0,0,0.6); }
+
+        /* --- TABELA --- */
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { font-family: var(--font-header); color: var(--primary); text-transform: uppercase; padding: 12px; border-bottom: 2px solid var(--primary); text-align: center; }
+        td { background: rgba(0,0,0,0.4); padding: 15px 10px; text-align: center; font-size: 1.1rem; border-top: 1px solid rgba(0,240,255,0.05); border-bottom: 1px solid rgba(0,240,255,0.05); transition: 0.2s; }
+        td:first-child { border-left: 1px solid rgba(0,240,255,0.05); border-radius: 8px 0 0 8px; }
+        td:last-child { border-right: 1px solid rgba(0,240,255,0.05); border-radius: 0 8px 8px 0; }
+        tr:hover td { background: rgba(0, 240, 255, 0.05); }
+        
+        .summary-label { font-family: var(--font-header); font-size: 1.6rem; color: var(--primary); text-align: right; margin-top: 15px; padding-top: 15px; border-top: 2px dashed rgba(0, 240, 255, 0.3); text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
+        .status-bar { text-align: center; padding: 10px; font-family: var(--font-header); color: var(--success); font-weight: bold; background: #07080d; border-top: 1px solid rgba(0,255,102,0.2); text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+
+        /* FORMATOWANIE TEKSTU W TABELI */
+        .text-missing { color: var(--secondary); font-weight: bold; text-shadow: 0 0 5px rgba(255,0,85,0.5); }
+        .text-fraction { color: var(--warning); font-weight: 700; text-shadow: 0 0 5px rgba(255,204,0,0.4); }
+        .row-missing td { background: rgba(255,0,85,0.1); border-color: rgba(255,0,85,0.3); }
+        .row-missing td:first-child { border-left: 3px solid var(--secondary); }
+
+        /* --- MODALE --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        .modal-content { background: var(--bg-panel); border: 1px solid var(--primary); border-radius: 12px; margin: 5% auto; padding: 25px; width: 95%; max-width: 600px; box-shadow: var(--shadow-primary); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; overflow-y: auto; transition: 0.3s; }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,240,255,0.2); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-title { font-family: var(--font-header); font-size: 1.3rem; color: var(--primary); text-transform: uppercase; text-shadow: 0 0 5px var(--primary); }
+        .close-btn { background: none; border: none; color: var(--secondary); font-size: 2rem; cursor: pointer; line-height: 1; transition: 0.2s; }
+        .close-btn:hover { text-shadow: 0 0 10px var(--secondary); transform: scale(1.1); }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+        .tabs { display: flex; border-bottom: 2px solid rgba(0,240,255,0.2); margin-bottom: 20px; }
+        .tab { padding: 10px 15px; cursor: pointer; color: var(--text-muted); font-family: var(--font-header); font-weight: bold; text-transform: uppercase; border-bottom: 3px solid transparent; transition: 0.3s; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); text-shadow: 0 0 8px rgba(0,240,255,0.5); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        .chart-container { width: 100%; height: 300px; position: relative; }
+
+        /* ================== SZARY MOTYW GAMINGOWY (STEEL LIGHT THEME) ================== */
+        body.light-theme {
+            --bg-dark: #64748b; 
+            --bg-panel: rgba(241, 245, 249, 0.95); 
+            --primary: #1e3a8a; 
+            --secondary: #b91c1c; 
+            --accent: #6d28d9;
+            --text-main: #0f172a; 
+            --text-muted: #475569;
+            --success: #15803d; 
+            --warning: #b45309; 
+            --shadow-primary: 0 6px 20px rgba(30, 58, 138, 0.25);
+            background-image: 
+                linear-gradient(rgba(30, 58, 138, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 58, 138, 0.05) 1px, transparent 1px);
+        }
+        body.light-theme .toolbar {
+            background: linear-gradient(180deg, #94a3b8, #64748b);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border-bottom: 2px solid var(--primary);
+        }
+        body.light-theme .dropdown-menu {
+            background: #e2e8f0;
+            border: 1px solid var(--primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        }
+        body.light-theme .dropdown-menu button {
+            color: var(--text-main);
+            border-bottom: 1px solid #cbd5e1;
+        }
+        body.light-theme .dropdown-menu button:hover {
+            background: rgba(30, 58, 138, 0.1);
+            color: var(--primary);
+        }
+        body.light-theme .glass-panel {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15), inset 0 0 15px rgba(255, 255, 255, 0.5);
+            border: 1px solid #94a3b8;
+        }
+        body.light-theme input[type="text"], 
+        body.light-theme input[type="number"], 
+        body.light-theme select, 
+        body.light-theme textarea {
+            background: #ffffff;
+            color: var(--primary);
+            border: 1px solid #cbd5e1;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        body.light-theme input:focus, 
+        body.light-theme select:focus, 
+        body.light-theme textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(30, 58, 138, 0.3), inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        body.light-theme .btn-3d {
+            background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            box-shadow: 0 6px 0 #475569, 0 8px 15px rgba(0,0,0,0.2);
+            text-shadow: none;
+        }
+        body.light-theme .btn-3d:hover { background: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 100%); text-shadow: none; }
+        body.light-theme .btn-3d:active { box-shadow: 0 0 0 #475569, 0 2px 5px rgba(0,0,0,0.2); }
+        
+        body.light-theme .btn-3d.warning { border-color: var(--warning); color: var(--warning); box-shadow: 0 6px 0 #78350f, 0 8px 15px rgba(0,0,0,0.2); }
+        body.light-theme .btn-3d.warning:active { box-shadow: 0 0 0 #78350f, 0 2px 5px rgba(0,0,0,0.2); }
+        
+        body.light-theme .btn-3d.secondary { border-color: var(--secondary); color: var(--secondary); box-shadow: 0 6px 0 #7f1d1d, 0 8px 15px rgba(0,0,0,0.2); }
+        body.light-theme .btn-3d.secondary:active { box-shadow: 0 0 0 #7f1d1d, 0 2px 5px rgba(0,0,0,0.2); }
+
+        body.light-theme td { background: #f8fafc; border-color: #cbd5e1; color: var(--text-main); }
+        body.light-theme td b { color: var(--primary); }
+        body.light-theme tr:hover td { background: #ffffff; }
+        body.light-theme .text-fraction { color: var(--warning); text-shadow: none; }
+        body.light-theme .text-missing { text-shadow: none; }
+        body.light-theme .toolbar-brand { text-shadow: none; color: #ffffff; }
+        
+        body.light-theme .modal-content { background: #f1f5f9; border: 1px solid var(--primary); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        body.light-theme .modal-header { border-bottom-color: #94a3b8; }
+        body.light-theme .modal-title { text-shadow: none; }
+        body.light-theme .status-bar { background: #94a3b8; border-top: 1px solid #475569; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        body.light-theme .summary-label { text-shadow: none; border-top-color: #94a3b8; }
+
+        /* --- WIDOK MOBILNY (KAFELKI) --- */
+        @media (max-width: 768px) {
+            #resultTable thead { display: none; }
+            #resultTable, #resultTable tbody, #resultTable tr, #resultTable td { display: block; width: 100%; }
+            #resultTable tr { margin-bottom: 15px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,240,255,0.2); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); position: relative; }
+            #resultTable td { text-align: right; padding: 12px 15px 12px 40%; border: none; border-bottom: 1px solid rgba(0,240,255,0.05); border-radius: 0 !important; }
+            #resultTable td:last-child { border-bottom: none; }
+            
+            #resultTable td:nth-child(1)::before { content: "📅 DATA"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            #resultTable td:nth-child(2)::before { content: "👤 KLIENT"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            #resultTable td:nth-child(3)::before { content: "🟢 START"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            #resultTable td:nth-child(4)::before { content: "🔴 KONIEC"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            #resultTable td:nth-child(5)::before { content: "⏱️ CZAS"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            #resultTable td:nth-child(6)::before { content: "⚙️ AKCJA"; position: absolute; left: 15px; width: 35%; text-align: left; font-family: var(--font-header); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+            
+            .toolbar-brand span { display: none; }
+            .btn-3d { padding: 10px 15px; font-size: 0.9rem; }
+            
+            body.light-theme #resultTable tr { background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            body.light-theme #resultTable td { border-bottom-color: #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div class="toolbar-brand"><i class="fas fa-gamepad"></i> <span>WOJTHOM 4.0</span></div>
+        <div class="menu-items">
+            <div class="dropdown-container">
+                <button class="toolbar-btn" onclick="toggleMenu('menuSystem')">
+                    <i class="fas fa-database"></i> <span data-i18n="menu_system">SYSTEM</span>
+                </button>
+                <div class="dropdown-menu" id="menuSystem">
+                    <button onclick="openModal('pdfLangModal')"><i class="fas fa-file-pdf" style="color:var(--secondary); width:20px;"></i> <span data-i18n="export_pdf">EXPORT PDF</span></button>
+                    <div class="separator"></div>
+                    <button onclick="openModal('statsModal')"><i class="fas fa-chart-pie" style="color:var(--primary); width:20px;"></i> <span data-i18n="stats">STATISTICS</span></button>
+                    <button onclick="openModal('filterModal')"><i class="fas fa-filter" style="color:var(--warning); width:20px;"></i> <span data-i18n="filters">FILTERS</span></button>
+                    <div class="separator"></div>
+                    <button onclick="toggleTheme()" id="toggleThemeBtn"><i class="fas fa-sun" style="color:var(--warning); width:20px;"></i> <span data-i18n="theme_light">LIGHT THEME</span></button>
+                    <div class="separator"></div>
+                    <button onclick="openModal('aboutModal')"><i class="fas fa-info-circle" style="color:var(--accent); width:20px;"></i> <span data-i18n="about">ABOUT</span></button>
+                </div>
+            </div>
+            
+            <div class="dropdown-container">
+                <button class="toolbar-btn" onclick="toggleMenu('menuLang')">
+                    <i class="fas fa-globe"></i> <span data-i18n="language">LANGUAGE</span>
+                </button>
+                <div class="dropdown-menu right" id="menuLang">
+                    <button onclick="setLang('en')"><i class="fas fa-check" id="check-en" style="opacity:0; width:20px; color:var(--success);"></i> ENGLISH (EN)</button>
+                    <button onclick="setLang('pl')"><i class="fas fa-check" id="check-pl" style="opacity:0; width:20px; color:var(--success);"></i> POLISH (PL)</button>
+                    <button onclick="setLang('no')"><i class="fas fa-check" id="check-no" style="opacity:0; width:20px; color:var(--success);"></i> NORWEGIAN (NO)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="glass-panel">
+            <div style="margin-bottom:15px;">
+                <label data-i18n="header_label">HEADER:</label>
+                <input type="text" id="headerInput" value="Time List">
+            </div>
+            <div>
+                <label data-i18n="input_label">PASTE RAW DATA (Logs):</label>
+                <textarea id="rawInput" placeholder="DD.MM Client HH:MM-HH:MM&#10;Ex. 15.04 Project 08:00-16:00&#10;Ex. 16.04 Base 1:30&#10;Ex. 17.04 Base 0.75"></textarea>
+            </div>
+            <div class="btn-container">
+                <button class="btn-3d" id="generateBtn"><i class="fas fa-bolt"></i> <span data-i18n="btn_generate">GENERATE LIST</span></button>
+                <button class="btn-3d warning" id="clearBtn"><i class="fas fa-eraser"></i> <span data-i18n="btn_clear">CLEAR</span></button>
+                <button class="btn-3d secondary" onclick="openModal('pdfLangModal')"><i class="fas fa-file-pdf"></i> <span data-i18n="export_pdf">EXPORT PDF</span></button>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <h3 data-i18n="list_title">DATABASE - TIME WORKED:</h3>
+            <div class="table-responsive">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th data-i18n="col_date">DATE</th>
+                            <th data-i18n="col_client">CLIENT/LOCATION</th>
+                            <th data-i18n="col_start">START</th>
+                            <th data-i18n="col_end">END</th>
+                            <th data-i18n="col_work">WORK TIME</th>
+                            <th data-i18n="col_action">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultBody"></tbody>
+                </table>
+            </div>
+            <div class="summary-label" id="summaryLabel"><span data-i18n="sum_total">TOTAL SUM:</span> 0:00</div>
+        </div>
+    </div>
+    
+    <div class="status-bar" id="statusBar" data-i18n="status_ready">SYSTEM READY</div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" data-i18n="edit_title">EDIT ENTRY</div>
+                <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <div><label data-i18n="col_date">DATE</label><input type="text" id="editDate"></div>
+                <div><label data-i18n="col_client">CLIENT/LOCATION</label><input type="text" id="editClient"></div>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;"><label data-i18n="col_start">START</label><input type="text" id="editStart"></div>
+                    <div style="flex:1;"><label data-i18n="col_end">END</label><input type="text" id="editEnd"></div>
+                </div>
+                <div><label data-i18n="col_work">WORK TIME (e.g. 1:30, 0.75, 8h)</label><input type="text" id="editWork"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-3d warning" onclick="closeModal('editModal')" data-i18n="btn_cancel">CANCEL</button>
+                <button class="btn-3d" id="saveEditBtn" data-i18n="btn_save">SAVE DATA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdfLangModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-file-pdf" style="color:var(--secondary);"></i> <span data-i18n="pdf_title">PDF EXPORT</span></div>
+                <button class="close-btn" onclick="closeModal('pdfLangModal')">&times;</button>
+            </div>
+            <p style="text-align:center; font-size:1.2rem; font-weight:bold; margin-bottom:20px; color:var(--primary);" data-i18n="pdf_desc">Wybierz j&#281;zyk dokumentu / Select PDF language:</p>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <button class="btn-3d" onclick="generatePDF('en')">🇬🇧 ENGLISH (EN)</button>
+                <button class="btn-3d" onclick="generatePDF('pl')">🇵🇱 POLSKI (PL)</button>
+                <button class="btn-3d" onclick="generatePDF('no')">🇳🇴 NORSK (NO)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" data-i18n="stats_title">SYSTEM STATISTICS</div>
+                <button class="close-btn" onclick="closeModal('statsModal')">&times;</button>
+            </div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('timeTab', this)"><span data-i18n="tab_days">BY DATE</span></div>
+                <div class="tab" onclick="switchTab('clientTab', this)"><span data-i18n="tab_clients">BY CLIENT</span></div>
+            </div>
+            <div id="timeTab" class="tab-content active"><div class="chart-container"><canvas id="timeChartCanvas"></canvas></div></div>
+            <div id="clientTab" class="tab-content"><div class="chart-container"><canvas id="clientChartCanvas"></canvas></div></div>
+            <div class="modal-footer"><button class="btn-3d warning" onclick="closeModal('statsModal')" data-i18n="btn_close">CLOSE</button></div>
+        </div>
+    </div>
+
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" data-i18n="filter_title">DATABASE FILTER</div>
+                <button class="close-btn" onclick="closeModal('filterModal')">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <div><label data-i18n="filter_client">SELECT CLIENT:</label><select id="filterClient"><option value="">Wszyscy / All</option></select></div>
+                <div><label data-i18n="filter_hours">MINIMUM TIME (HOURS):</label><input type="number" id="filterMinHours" min="0" step="0.5" value="0"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-3d warning" id="resetFilterBtn" data-i18n="btn_reset">RESET</button>
+                <button class="btn-3d" id="applyFilterBtn" data-i18n="btn_apply">APPLY</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" data-i18n="about">ABOUT</div>
+                <button class="close-btn" onclick="closeModal('aboutModal')">&times;</button>
+            </div>
+            <p style="font-size: 1.4rem; color: var(--primary); font-family: var(--font-header);">WojThom 4.0</p>
+            <p style="color:var(--warning); font-weight:bold; letter-spacing:1px;">STEEL APEX EDITION</p>
+            <p data-i18n="about_text">Designed by Wojciech K. and Thomas O.<br>Engine completely rewritten for bulletproof precision.</p>
+            
+            <div style="margin-top: 20px; text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                <p style="color: var(--primary); font-family: var(--font-header); margin-top: 0; margin-bottom: 10px; font-weight: bold; text-transform: uppercase;" data-i18n="about_changelog_title">Główne nowości:</p>
+                <div data-i18n="about_updates" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main);">
+                    </div>
+            </div>
+
+            <div class="modal-footer"><button class="btn-3d warning" onclick="closeModal('aboutModal')" data-i18n="btn_close">CLOSE</button></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SŁOWNIKI W UNICODE (W PEŁNI ODPORNE NA BŁĘDY NOTATNIKA) ---
+        // DODANO: Tłumaczenia dla Changelogu
+        const i18n = {
+            "en": {
+                "menu_system": "SYSTEM", "language": "LANGUAGE", "export_pdf": "EXPORT PDF", "stats": "STATISTICS", "filters": "FILTERS", "about": "ABOUT",
+                "theme_light": "STEEL THEME", "theme_dark": "DARK THEME",
+                "pdf_title": "PDF EXPORT OPTIONS", "pdf_desc": "Select the language for your PDF document:",
+                "header_label": "HEADER:", "input_label": "PASTE RAW DATA (Logs):", "btn_generate": "GENERATE LIST", "btn_clear": "CLEAR",
+                "list_title": "DATABASE - TIME WORKED:", "sum_total": "TOTAL SUM:", "status_ready": "SYSTEM READY", "status_generated": "GENERATED ENTRIES: ",
+                "col_date": "DATE", "col_client": "CLIENT/LOCATION", "col_start": "START", "col_end": "END", "col_work": "WORK TIME", "col_action": "ACTION",
+                "edit_title": "EDIT ENTRY", "btn_cancel": "CANCEL", "btn_save": "SAVE DATA", "btn_close": "CLOSE", "btn_reset": "RESET", "btn_apply": "APPLY",
+                "stats_title": "SYSTEM STATISTICS", "tab_days": "BY DATE", "tab_clients": "BY CLIENT",
+                "filter_title": "DATABASE FILTER", "filter_client": "SELECT CLIENT:", "filter_hours": "MINIMUM TIME (HOURS):",
+                "about_text": "Designed by Wojciech K. and Thomas O.<br>Engine completely rewritten for bulletproof precision.", "missing": "MISSING", "btn_edit": "EDIT",
+                "page": "Page",
+                "about_changelog_title": "Main Updates (Changelog):",
+                "about_updates": "<ul style='margin:0; padding-left:20px;'><li>Full UTF-8 support (fixes PL/NO characters)</li><li>Automatic PDF naming (e.g. DD.MM.YYYY_timeliste.pdf)</li><li>Smart PDF pagination with no page limits</li><li>Elegant, compact total sum badge & centered headers</li><li>Bulletproof engine for raw log parsing</li></ul>"
+            },
+            "pl": {
+                "menu_system": "SYSTEM", "language": "J\u0118ZYK", "export_pdf": "EKSPORT PDF", "stats": "STATYSTYKI", "filters": "FILTRY", "about": "O PROGRAMIE",
+                "theme_light": "SZARY MOTYW", "theme_dark": "CIEMNY MOTYW",
+                "pdf_title": "OPCJE EKSPORTU PDF", "pdf_desc": "Wybierz j\u0119zyk wygenerowanego dokumentu:",
+                "header_label": "NAG\u0141\u00D3WEK:", "input_label": "WKLEJ LOGI SYSTEMOWE (Surowe dane):", "btn_generate": "GENERUJ LIST\u0118", "btn_clear": "WYCZY\u015A\u0106",
+                "list_title": "BAZA DANYCH - CZAS PRACY:", "sum_total": "SUMA CA\u0141KOWITA:", "status_ready": "SYSTEM GOTOWY", "status_generated": "WYGENEROWANO WPIS\u00D3W: ",
+                "col_date": "DATA", "col_client": "KLIENT/LOKALIZACJA", "col_start": "START", "col_end": "KONIEC", "col_work": "CZAS PRACY", "col_action": "AKCJA",
+                "edit_title": "MODYFIKACJA WPISU", "btn_cancel": "ANULUJ", "btn_save": "ZAPISZ DANE", "btn_close": "ZAMKNIJ", "btn_reset": "RESETUJ", "btn_apply": "ZASTOSUJ",
+                "stats_title": "STATYSTYKI SYSTEMOWE", "tab_days": "ROZK\u0141AD NA DNI", "tab_clients": "ROZK\u0141AD NA KLIENT\u00D3W",
+                "filter_title": "FILTROWANIE BAZY", "filter_client": "WYBIERZ KLIENTA:", "filter_hours": "MINIMALNY CZAS (GODZINY):",
+                "about_text": "Zaprojektowany przez Wojciech K. oraz Thomas O.<br>Silnik ca\u0142kowicie przepisany na nowo dla pe\u0142nej niezawodno\u015Bci.", "missing": "BRAK DANYCH", "btn_edit": "EDYTUJ",
+                "page": "Strona",
+                "about_changelog_title": "Najwa\u017Cniejsze nowo\u015Bci:",
+                "about_updates": "<ul style='margin:0; padding-left:20px;'><li>Pe\u0142ne wsparcie znak\u00F3w PL i NO (naprawa kodowania UTF-8)</li><li>Automatyczne nazywanie plik\u00F3w PDF (np. DD.MM.YYYY_timeliste.pdf)</li><li>Inteligentny PDF: brak limitu stron i automatyczna numeracja</li><li>Elegancka, profesjonalna ramka z sum\u0105 i \u015Brodkowanie tekstu</li><li>Pancerny algorytm odczytuj\u0105cy nawet najbardziej zepsute logi</li></ul>"
+            },
+            "no": {
+                "menu_system": "SYSTEM", "language": "SPR\u00C5K", "export_pdf": "EKSPORTER PDF", "stats": "STATISTIKK", "filters": "FILTER", "about": "OM PROGRAMMET",
+                "theme_light": "ST\u00C5L TEMA", "theme_dark": "M\u00D8RKT TEMA",
+                "pdf_title": "PDF EKSPORT ALTERNATIVER", "pdf_desc": "Velg spr\u00E5k for PDF-dokumentet:",
+                "header_label": "OVERSKRIFT:", "input_label": "LIM INN R\u00C5DATA (Logger):", "btn_generate": "GENERER LISTE", "btn_clear": "T\u00D8M",
+                "list_title": "DATABAS - ARBEIDSTID:", "sum_total": "SUM TOTALT:", "status_ready": "SYSTEM KLAR", "status_generated": "GENERERTE RADER: ",
+                "col_date": "DATO", "col_client": "KUNDE/LOKASJON", "col_start": "START", "col_end": "SLUTT", "col_work": "ARBEIDSTID", "col_action": "HANDLING",
+                "edit_title": "REDIGER OPPF\u00D8RING", "btn_cancel": "AVBRYT", "btn_save": "LAGRE DATA", "btn_close": "LUKK", "btn_reset": "NULLSTILL", "btn_apply": "BRUK",
+                "stats_title": "SYSTEMSTATISTIKK", "tab_days": "ETTER DATO", "tab_clients": "ETTER KUNDE",
+                "filter_title": "DATAFILTRERING", "filter_client": "VELG KUNDE:", "filter_hours": "MINIMUM TID (TIMER):",
+                "about_text": "Designet av Wojciech K. og Thomas O.<br>Motoren er fullstendig omskrevet for presisjon og stabilitet.", "missing": "MANGLER", "btn_edit": "REDIGER",
+                "page": "Side",
+                "about_changelog_title": "Viktigste oppdateringer:",
+                "about_updates": "<ul style='margin:0; padding-left:20px;'><li>Full støtte for polske og norske tegn (UTF-8)</li><li>Automatisk PDF-navngivning (f.eks. DD.MM.YYYY_timeliste.pdf)</li><li>Ubegrenset antall sider i PDF med sidetall</li><li>Elegant, kompakt totaltidsramme og midtstilte overskrifter</li><li>Skuddsikker motor for feilfri parsing av rå loggdata</li></ul>"
+            }
+        };
+
+        // --- 2. ZMIENNE GLOBALNE I INICJALIZACJA ---
+        let currentLang = localStorage.getItem('wojthom-lang') || 'en';
+        let isLightMode = localStorage.getItem('wojthom-theme') === 'light';
+        let entries = [];
+        let originalEntries = [];
+        let editIndex = -1;
+        let tChart = null, cChart = null;
+
+        function initApp() {
+            setLang(currentLang);
+            applyTheme();
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('wojthom-lang', lang); 
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => { 
+                if (i18n[lang][el.getAttribute('data-i18n')]) {
+                    el.innerHTML = i18n[lang][el.getAttribute('data-i18n')]; 
+                }
+            });
+            
+            ['no','pl','en'].forEach(k => document.getElementById('check-'+k).style.opacity = '0');
+            document.getElementById('check-'+lang).style.opacity = '1';
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            
+            const defHeaders = {"no": "Tidsliste", "pl": "Lista Czasu Pracy", "en": "Time List"};
+            let hInput = document.getElementById('headerInput');
+            if(hInput.value === "Lista Czasu Pracy" || hInput.value === "Tidsliste" || hInput.value === "Time List") {
+                hInput.value = defHeaders[lang];
+            }
+            
+            applyTheme(); 
+            if(entries.length > 0) refreshTable();
+        }
+
+        function applyTheme() {
+            const btn = document.getElementById('toggleThemeBtn');
+            if (isLightMode) {
+                document.body.classList.add('light-theme');
+                btn.innerHTML = `<i class="fas fa-moon" style="color:var(--primary); width:20px;"></i> <span data-i18n="theme_dark">${i18n[currentLang].theme_dark}</span>`;
+            } else {
+                document.body.classList.remove('light-theme');
+                btn.innerHTML = `<i class="fas fa-sun" style="color:var(--warning); width:20px;"></i> <span data-i18n="theme_light">${i18n[currentLang].theme_light}</span>`;
+            }
+        }
+
+        function toggleTheme() {
+            isLightMode = !isLightMode;
+            localStorage.setItem('wojthom-theme', isLightMode ? 'light' : 'dark'); 
+            applyTheme();
+            if (document.getElementById('statsModal').style.display === 'block') drawCharts();
+        }
+
+        function toggleMenu(id) {
+            document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.classList.remove('show'); });
+            document.getElementById(id).classList.toggle('show');
+        }
+        window.onclick = e => { if(!e.target.closest('.dropdown-container')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); };
+        
+        function openModal(id) { 
+            if(id === 'pdfLangModal' && entries.length === 0) return alert(i18n[currentLang].missing + "!");
+            
+            document.getElementById(id).style.display = 'block'; 
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            if(id === 'statsModal') drawCharts();
+            if(id === 'filterModal') populateFilter();
+        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // --- 5. BEZBŁĘDNY SILNIK PARSOWANIA DANYCH ---
+        function formatMinutes(mins) {
+            let h = Math.floor(mins / 60);
+            let m = mins % 60;
+            return `${h}:${m.toString().padStart(2, '0')}`;
+        }
+
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            const rawData = document.getElementById('rawInput').value;
+            if(!rawData.trim()) return;
+            
+            entries = [];
+            const lines = rawData.split('\n');
+            
+            lines.forEach(line => {
+                line = line.trim();
+                line = line.replace(/\b(\d+)\s+(\d{1,2})\b(?=\s*$|\s*[hHtT]\b)/g, '$1.$2');
+                if (!line) return;
+
+                let date='', client='', start='', end='', work='', minutes=0;
+
+                const dateMatch = line.match(/^(\d{1,2})[\.\-\/\s]+(\d{1,2})\b/);
+                if(dateMatch) {
+                    date = `${dateMatch[1].padStart(2,'0')}.${dateMatch[2].padStart(2,'0')}`;
+                    line = line.substring(dateMatch[0].length).trim();
+                }
+
+                const rangeMatch = line.match(/(\d{1,2})[:\.](\d{2})\s*-\s*(\d{1,2})[:\.](\d{2})/);
+                if(rangeMatch) {
+                    start = `${rangeMatch[1].padStart(2,'0')}:${rangeMatch[2]}`;
+                    end = `${rangeMatch[3].padStart(2,'0')}:${rangeMatch[4]}`;
+                    let sm = parseInt(rangeMatch[1])*60 + parseInt(rangeMatch[2]);
+                    let em = parseInt(rangeMatch[3])*60 + parseInt(rangeMatch[4]);
+                    if(em < sm) em += 24*60;
+                    minutes = em - sm;
+                    work = formatMinutes(minutes);
+                    line = line.replace(rangeMatch[0], '').trim();
+                } else {
+                    const exactTimeMatch = line.match(/\b(\d{1,2})[:\.]([0-5]\d)\b(?!\s*-)/);
+                    if(exactTimeMatch) {
+                        minutes = parseInt(exactTimeMatch[1])*60 + parseInt(exactTimeMatch[2]);
+                        work = formatMinutes(minutes);
+                        line = line.replace(exactTimeMatch[0], '').trim();
+                    } else {
+                        const durMatchH = line.match(/\b(\d+[\.\,]?\d*)\s*[hHtT]\b/i);
+                        if(durMatchH) {
+                            let val = parseFloat(durMatchH[1].replace(',','.'));
+                            if(!isNaN(val)) {
+                                minutes = Math.round(val * 60);
+                                let tStr = formatMinutes(minutes);
+                                work = (val % 1 !== 0) ? `<span class="text-fraction">${durMatchH[1].replace(',','.')}</span> / ${tStr}` : tStr;
+                                line = line.replace(durMatchH[0], '').trim();
+                            }
+                        } else {
+                            const durMatchEnd = line.match(/(?:\s|^)(\d+[\.\,]?\d*)$/);
+                            if(durMatchEnd) {
+                                let val = parseFloat(durMatchEnd[1].replace(',','.'));
+                                if(!isNaN(val)) {
+                                    minutes = Math.round(val * 60);
+                                    let tStr = formatMinutes(minutes);
+                                    work = (val % 1 !== 0) ? `<span class="text-fraction">${durMatchEnd[1].replace(',','.')}</span> / ${tStr}` : tStr;
+                                    line = line.replace(durMatchEnd[0], '').trim();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                client = line.trim();
+                entries.push({date, client, start, end, work, minutes});
+            });
+            
+            originalEntries = [...entries];
+            refreshTable();
+            document.getElementById('statusBar').innerText = i18n[currentLang].status_generated + entries.length;
+        });
+
+        // --- 6. RENDEROWANIE I EDYCJA ---
+        function refreshTable() {
+            const tbody = document.getElementById('resultBody');
+            tbody.innerHTML = '';
+            let totalMin = 0;
+
+            entries.forEach((e, i) => {
+                totalMin += (e.minutes || 0);
+                const isMissing = !e.date || !e.client || !e.work;
+                const tr = document.createElement('tr');
+                if (isMissing) tr.className = 'row-missing';
+                
+                const misText = `<span class="text-missing"><i class="fas fa-exclamation-triangle"></i> ${i18n[currentLang].missing}</span>`;
+
+                tr.innerHTML = `
+                    <td data-label="${i18n[currentLang].col_date}">${e.date || misText}</td>
+                    <td data-label="${i18n[currentLang].col_client}" style="text-align:left;">${e.client || misText}</td>
+                    <td data-label="${i18n[currentLang].col_start}">${e.start || '-'}</td>
+                    <td data-label="${i18n[currentLang].col_end}">${e.end || '-'}</td>
+                    <td data-label="${i18n[currentLang].col_work}"><b>${e.work || misText}</b></td>
+                    <td data-label="${i18n[currentLang].col_action}">
+                        <button class="btn-3d warning" style="padding: 5px 10px; min-width:auto; font-size:0.8rem;" onclick="openEdit(${i})"><i class="fas fa-wrench"></i> ${i18n[currentLang].btn_edit}</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('summaryLabel').innerHTML = `<span data-i18n="sum_total">${i18n[currentLang].sum_total}</span> ${formatMinutes(totalMin)}`;
+        }
+
+        window.openEdit = function(idx) {
+            editIndex = idx;
+            const e = entries[idx];
+            document.getElementById('editDate').value = e.date;
+            document.getElementById('editClient').value = e.client;
+            document.getElementById('editStart').value = e.start;
+            document.getElementById('editEnd').value = e.end;
+            document.getElementById('editWork').value = e.work ? e.work.replace(/<[^>]*>?/gm, '') : '';
+            openModal('editModal');
+        };
+
+        document.getElementById('saveEditBtn').addEventListener('click', () => {
+            if(editIndex === -1) return;
+            let e = entries[editIndex];
+            e.date = document.getElementById('editDate').value.trim();
+            e.client = document.getElementById('editClient').value.trim();
+            e.start = document.getElementById('editStart').value.trim();
+            e.end = document.getElementById('editEnd').value.trim();
+            
+            let wk = document.getElementById('editWork').value.trim();
+            let calcMin = 0;
+
+            if(wk) {
+                let cleanWk = wk.replace(/[hHtT]$/i, '').trim();
+                if(cleanWk.includes(':')) {
+                    let pts = cleanWk.split(':');
+                    if(pts.length===2) { calcMin = parseInt(pts[0])*60 + parseInt(pts[1]); e.work = formatMinutes(calcMin); }
+                } else if(cleanWk.includes('/')) {
+                    let pts = cleanWk.split('/')[1].trim().split(':');
+                    if(pts.length===2) { calcMin = parseInt(pts[0])*60 + parseInt(pts[1]); e.work = cleanWk; }
+                } else if(/^(\d+[\.\,]\d*)$/.test(cleanWk) || /^\d+$/.test(cleanWk)) { 
+                    let n = parseFloat(cleanWk.replace(',','.'));
+                    calcMin = Math.round(n * 60);
+                    e.work = (n % 1 !== 0) ? `<span class="text-fraction">${n}</span> / ${formatMinutes(calcMin)}` : formatMinutes(calcMin);
+                }
+            } else if(e.start && e.end) {
+                let sMatch = e.start.match(/(\d{1,2})[:\.](\d{2})/);
+                let eMatch = e.end.match(/(\d{1,2})[:\.](\d{2})/);
+                if(sMatch && eMatch) {
+                    let stM = parseInt(sMatch[1])*60 + parseInt(sMatch[2]);
+                    let enM = parseInt(eMatch[1])*60 + parseInt(eMatch[2]);
+                    if(enM < stM) enM += 24*60;
+                    calcMin = enM - stM;
+                    e.work = formatMinutes(calcMin);
+                }
+            }
+            e.minutes = calcMin;
+            
+            let origIndex = originalEntries.findIndex(orig => orig === e);
+            if(origIndex !== -1) originalEntries[origIndex] = {...e};
+            
+            closeModal('editModal');
+            refreshTable();
+        });
+
+        // --- 7. CZYSZCZENIE I FILTRY ---
+        document.getElementById('clearBtn').addEventListener('click', () => { document.getElementById('rawInput').value = ''; entries = []; originalEntries = []; refreshTable(); document.getElementById('statusBar').innerText = i18n[currentLang].status_ready; });
+        
+        function populateFilter() {
+            const sel = document.getElementById('filterClient');
+            sel.innerHTML = '<option value="">Wszyscy / All</option>';
+            const clients = [...new Set(originalEntries.map(e => e.client).filter(Boolean))];
+            clients.forEach(c => { sel.innerHTML += `<option value="${c}">${c}</option>`; });
+        }
+        
+        document.getElementById('applyFilterBtn').addEventListener('click', () => {
+            const cFilter = document.getElementById('filterClient').value;
+            const minH = parseFloat(document.getElementById('filterMinHours').value) || 0;
+            entries = originalEntries.filter(e => {
+                let matchClient = cFilter === "" || e.client === cFilter;
+                let matchHours = (e.minutes / 60) >= minH;
+                return matchClient && matchHours;
+            });
+            closeModal('filterModal');
+            refreshTable();
+        });
+        
+        document.getElementById('resetFilterBtn').addEventListener('click', () => {
+            entries = [...originalEntries];
+            document.getElementById('filterClient').value = "";
+            document.getElementById('filterMinHours').value = "0";
+            closeModal('filterModal');
+            refreshTable();
+        });
+
+        // --- 8. STATYSTYKI CHART.JS ---
+        function drawCharts() {
+            let dateMap = {}, clientMap = {};
+            entries.forEach(e => { 
+                if(e.date && e.minutes) dateMap[e.date] = (dateMap[e.date]||0) + e.minutes/60; 
+                if(e.client && e.minutes) clientMap[e.client] = (clientMap[e.client]||0) + e.minutes/60; 
+            });
+            
+            Chart.defaults.color = isLightMode ? '#475569' : '#e0e6ed';
+            Chart.defaults.font.family = 'Rajdhani';
+
+            if(tChart) tChart.destroy();
+            tChart = new Chart(document.getElementById('timeChartCanvas').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dateMap),
+                    datasets: [{ label: 'H (Godziny)', data: Object.values(dateMap), backgroundColor: isLightMode ? '#1e3a8a' : '#00f0ff', borderRadius: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: isLightMode ? 'rgba(30, 58, 138, 0.15)' : 'rgba(0,240,255,0.1)' } } } }
+            });
+
+            if(cChart) cChart.destroy();
+            cChart = new Chart(document.getElementById('clientChartCanvas').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(clientMap),
+                    datasets: [{ label: 'H', data: Object.values(clientMap), backgroundColor: ['#1e3a8a', '#b91c1c', '#6d28d9', '#b45309', '#15803d'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // --- 9. PROFESJONALNY EKSPORT PDF ---
+        function generatePDF(pdfLang) {
+            closeModal('pdfLangModal'); 
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            if (window.pdfMake && window.pdfMake.vfs) {
+                const vfs = window.pdfMake.vfs;
+                if (vfs['Roboto-Regular.ttf']) {
+                    doc.addFileToVFS('Roboto-Regular.ttf', vfs['Roboto-Regular.ttf']);
+                    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal', 'Identity-H');
+                }
+                if (vfs['Roboto-Medium.ttf']) {
+                    doc.addFileToVFS('Roboto-Medium.ttf', vfs['Roboto-Medium.ttf']);
+                    doc.addFont('Roboto-Medium.ttf', 'Roboto', 'bold', 'Identity-H');
+                }
+                doc.setFont('Roboto', 'normal');
+            }
+            
+            const t = i18n[pdfLang]; 
+            const stripHTML = (str) => (str ? str.toString().replace(/<[^>]*>?/gm, '') : '');
+            
+            // --- WYŚRODKOWANY, ZMNIEJSZONY NAGŁÓWEK ---
+            doc.setFontSize(18);
+            doc.setFont('Roboto', 'bold');
+            doc.setTextColor(30, 30, 30);
+            doc.text(document.getElementById('headerInput').value, pageWidth / 2, 22, { align: 'center' });
+            
+            // --- WYŚRODKOWANA DATA GENERACJI ---
+            doc.setFontSize(10);
+            doc.setFont('Roboto', 'normal');
+            doc.setTextColor(120, 120, 120);
+            const dateText = `${pdfLang === 'pl' ? 'Wygenerowano' : (pdfLang === 'no' ? 'Generert' : 'Generated on')}: ${new Date().toLocaleDateString()}`;
+            doc.text(dateText, pageWidth / 2, 30, { align: 'center' });
+            
+            // --- TABELA DANYCH (Z BRAKIEM LIMITÓW I NUMERACJĄ STRON) ---
+            const tableData = entries.map(e => [
+                stripHTML(e.date), 
+                stripHTML(e.client), 
+                stripHTML(e.start), 
+                stripHTML(e.end), 
+                stripHTML(e.work)
+            ]);
+            
+            doc.autoTable({
+                startY: 40, 
+                margin: { top: 20, bottom: 20 },
+                head: [[t.col_date, t.col_client, t.col_start, t.col_end, t.col_work]],
+                body: tableData,
+                theme: 'striped', 
+                headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 11, font: 'Roboto' },
+                bodyStyles: { textColor: 40, font: 'Roboto' },
+                alternateRowStyles: { fillColor: [241, 245, 249] },
+                styles: { font: 'Roboto', cellPadding: 5, lineColor: [203, 213, 225], lineWidth: 0.1 },
+                // Dodawanie numeru strony na dół
+                didDrawPage: function (data) {
+                    let pageStr = `${t.page} ${doc.internal.getNumberOfPages()}`;
+                    doc.setFontSize(9);
+                    doc.setFont('Roboto', 'normal');
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(pageStr, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                }
+            });
+            
+            // --- ZABEZPIECZENIE: SUMA CAŁKOWITA NA KOŃCU DOKUMENTU ---
+            let totalMin = entries.reduce((sum, e) => sum + (e.minutes || 0), 0);
+            let totalStr = formatMinutes(totalMin);
+            
+            let finalY = doc.lastAutoTable.finalY;
+            
+            // Jeśli zabrakło miejsca na dole kartki na podsumowanie - utwórz nową kartkę!
+            if (finalY + 25 > pageHeight - 20) {
+                doc.addPage();
+                finalY = 20; 
+                
+                let pageStr = `${t.page} ${doc.internal.getNumberOfPages()}`;
+                doc.setFontSize(9);
+                doc.setFont('Roboto', 'normal');
+                doc.setTextColor(150, 150, 150);
+                doc.text(pageStr, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            }
+            
+            // --- ESTETYCZNA, JESZCZE MNIEJSZA SUMA Z TŁEM (-25%) ---
+            let sumText = `${t.sum_total} ${totalStr}`;
+            doc.setFontSize(9.5); // Zmniejszona czcionka (z 12 na 9.5)
+            doc.setFont('Roboto', 'bold');
+            
+            let textWidth = doc.getTextWidth(sumText);
+            let padX = 6; // Mniejszy margines w poziomie (z 8 na 6)
+            let rectW = textWidth + (padX * 2);
+            let rectH = 9; // Mniejsza wysokość ramki (z 12 na 9)
+            let rectX = pageWidth - 14 - rectW; // Wyrównane idealnie do prawej linii tabeli
+            let rectY = finalY + 8; // Lekko podciągnięte do góry (bliżej tabeli)
+            
+            // Delikatne tło (jasny błękit) + cienka ramka (ciemny granat)
+            doc.setFillColor(235, 242, 250); 
+            doc.setDrawColor(30, 58, 138); 
+            doc.setLineWidth(0.2);
+            doc.roundedRect(rectX, rectY, rectW, rectH, 1.2, 1.2, 'FD'); // Mniejsze zaokrąglenie rogów
+            
+            doc.setTextColor(30, 58, 138); 
+            doc.text(sumText, pageWidth - 14 - padX, rectY + 6.3, { align: 'right' }); // Wyśrodkowany pionowo tekst w ramce
+            
+            // --- AUTOMATYCZNA NAZWA PLIKU Z DATĄ (np. 15.02.2025_timeliste.pdf) ---
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            const fileDate = `${dd}.${mm}.${yyyy}`;
+            
+            doc.save(`${fileDate}_timeliste.pdf`);
+        }
+
+        // Uruchomienie programu 
+        initApp();
+    </script>
+    
+    <script>
+        const swCode = `
+        const CACHE_NAME = 'wojthom-v4-neon';
+        self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['./']))); });
+        self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))); });
+        `;
+        const blob = new Blob([swCode], {type: 'application/javascript'});
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+</body>
+</html>
