@@ -15,6 +15,16 @@
 
 ---
 
+## Po polsku — generator ewidencji czasu pracy
+
+**TimeListe Generator** to projekt do zapisywania godzin pracy i przygotowywania list czasu pracy w przeglądarce. Wersje HTML/JavaScript można uruchamiać lokalnie; repozytorium zawiera też materiały związane z wersją APK.
+
+**Szybki start:** pobierz repozytorium, rozpakuj pliki i otwórz [`html/v5.html`](html/v5.html) w przeglądarce. Alternatywą jest lokalny serwer opisany niżej. Link do pliku na GitHubie pokazuje jego kod — uruchom pobraną kopię.
+
+[Więcej programów i narzędzi SWIR →](https://github.com/Swir#readme)
+
+---
+
 ## 🚀 About
 
 **TimeListe Generator** is an evolving work-hours and timesheet project built around portable web technologies. The repository contains browser-based HTML versions together with APK-oriented project material, making it useful as a lightweight time-list utility and a base for mobile packaging.
@@ -59,7 +69,7 @@ cd TimeListe-Generator
 python -m http.server 8000
 ```
 
-Then browse to the relevant HTML file under `http://localhost:8000/`.
+Then open [the v5 web interface](http://localhost:8000/html/v5.html) in your browser while the local server is running.
 
 ---
 
