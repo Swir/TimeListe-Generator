@@ -1,0 +1,69 @@
+name: Package and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag (for example v5.0.0)
+        required: true
+        default: v5.0.0
+  push:
+    tags:
+      - "v*"
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  package-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            version="${{ github.ref_name }}"
+          else
+            version="v5.0.0"
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Validate latest web version
+        shell: bash
+        run: |
+          test -s "html/v5.html"
+          grep -qi '<html\|<!doctype' "html/v5.html"
+
+      - name: Build web package and checksums
+        shell: bash
+        run: |
+          package="TimeListe-Generator-${VERSION}-Web"
+          mkdir -p "$package"
+          cp "html/v5.html" "$package/index.html"
+          cp README.md "$package/README.md"
+          zip -r "${package}.zip" "$package"
+          sha256sum "${package}.zip" Apk/*.apk > SHA256SUMS.txt
+          echo "ZIP_NAME=${package}.zip" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assets=("$ZIP_NAME" "SHA256SUMS.txt")
+          for apk in Apk/*.apk; do assets+=("$apk"); done
+          if gh release view "$VERSION" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$VERSION" "${assets[@]}" --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$VERSION" "${assets[@]}" --target "${{ github.sha }}" --title "TimeListe Generator ${VERSION}" --notes "Web v5 package plus Android APK builds currently stored in the repository. The APK filenames retain their original build versions." --repo "${{ github.repository }}"
+          fi
