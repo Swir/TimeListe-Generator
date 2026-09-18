@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">TimeListe Generator icon</title><desc id="desc">Electric cyan clock and timesheet symbol on a dark square.</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#02050A"/><stop offset="1" stop-color="#07111C"/></linearGradient><linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0088FF"/><stop offset="1" stop-color="#62E5FF"/></linearGradient></defs>
+  <rect x="4" y="4" width="248" height="248" rx="52" fill="url(#bg)" stroke="#62E5FF" stroke-opacity=".45" stroke-width="4"/>
+  <circle cx="100" cy="116" r="54" fill="none" stroke="url(#cyan)" stroke-width="10"/><path d="M100 82v37l25 16" fill="none" stroke="#F4FAFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="146" y="86" width="70" height="92" rx="12" fill="#07111C" stroke="#62E5FF" stroke-width="6"/><path d="M163 110h36M163 132h36M163 154h25" stroke="#F4FAFF" stroke-width="7" stroke-linecap="round"/>
+</svg>
