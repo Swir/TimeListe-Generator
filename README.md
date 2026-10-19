@@ -18,6 +18,12 @@
 
 </div>
 
+## 📸 Screenshot
+
+![TimeListe-Generator application screenshot](docs/screenshots/application.jpg)
+
+Browser view of html/v5.html with illustrative work entries.
+
 <img width="100%" src="https://raw.githubusercontent.com/Swir/Swir/main/assets/power-divider-v4.svg" alt="SWIR electric divider" />
 
 ## 📍 Project Status
